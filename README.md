@@ -1,8 +1,8 @@
-# S3 presigned URLs with SAM, auth and sample frontend
+# File Sharing using S3 and presigned URL as serverless application 
 
-This example application shows how to upload objects to S3 directly from your end-user application using Signed URLs.
+This example application allows you to upload and download files to and from S3 using Signed URLs.
 
-To learn more about how this application works, see the AWS Compute Blog post: https://aws.amazon.com/blogs/compute/uploading-to-amazon-s3-directly-from-a-web-or-mobile-application/
+Large part of the program is designed from the following project: https://aws.amazon.com/blogs/compute/uploading-to-amazon-s3-directly-from-a-web-or-mobile-application/
 
 Important: this application uses various AWS services and there are costs associated with these services after the Free Tier usage - please see the [AWS Pricing page](https://aws.amazon.com/pricing/) for details. You are responsible for any AWS costs incurred. No warranty is implied in this example.
 
@@ -10,7 +10,8 @@ Important: this application uses various AWS services and there are costs associ
 .
 ├── README.MD                   <-- This instructions file
 ├── frontend                    <-- Simple JavaScript application illustrating upload
-├── getSignedURL                <-- Source code for the serverless backend
+├── getDownloadURL              <-- Source code for the serverless backend for the download function
+├── getUploadURL                <-- Source code for the serverless backend for the upload function
 ```
 
 ## Requirements
@@ -49,20 +50,16 @@ This takes several minutes to deploy. At the end of the deployment, note the out
 
 The frontend code is saved in the `frontend` subdirectory. 
 
-1. Before running, you need to set the API Gateway endpoint from the backend deployment on line 29 in the `index.html` file.
+1. Before running, you need to set the API Gateway endpoint from the backend deployment on line 51 in the `index.html` file.
 
 2. You cannot run this directly on a local browser, due to way CORS works with localhost. Either [copy the file to an S3 bucket](https://docs.aws.amazon.com/AmazonS3/latest/user-guide/upload-objects.html), or [deploy using AWS Amplify Console](https://aws.amazon.com/amplify/console/).
 
-3. Once the page is loaded from a remote location, upload a JPG file in the front-end and you will see the object in the backend S3 bucket.
+3. Once the page is loaded from a remote location, upload any file in the front-end and you will see the object in the backend S3 bucket.
 
-## Next steps
+4. You can also keep the UID from the frontend and use the download function to retrieve the file.
 
-The AWS Compute Blog post at the top of this README file contains additional information about this pattern.
+## Limitations and Future Work
 
-If you have any questions, please raise an issue in the GitHub repo.
+One of the key drawback is the limitation of 100MB due to the cache limit of the browser. Future works will be focused on incorporating streaming data and multipart upload to the application to remove this limitation.
 
-==============================================
 
-Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-
-SPDX-License-Identifier: MIT-0
