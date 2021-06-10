@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>S3 File Sharing App</title>
+    <script src="https://unpkg.com/vue"></script>
+    <script src="https://unpkg.com/axios@0.2.1/dist/axios.min.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <h1>S3 File Sharing Test</h1>
+
+      <div class="toggle-container">
+        <input type="checkbox" v-model="u_d_boolean"/>
+        <div class="slider round"></div>
+      </div>
+
+	  <p style="font-size:65%; line-height:0px;">*Toggle between upload and download</p>
+
+
+	  <div v-if="!u_d_boolean">
+        <div v-if="!file">
+          <h2>Select a file to upload</h2>
+          <input type="file" @change="onFileChange">
+        </div>
+        <div v-else>
+ 		  <h3>File: {{file_name}}<br><br></h3>
+          <button v-if="!uploadURL" @click="removeFile">Remove File</button>
+          <button v-if="!uploadURL" @click="uploadFile">Upload File</button>
+        </div>
+        <h2 v-if="uploadURL">Success! File uploaded to bucket. <br> Your UID is: <u>{{upload_id}}</u></h2>
+	  </div>
+
+	  <div v-if="u_d_boolean">
+		<div v-if="!downloadURL">
+	      <h2>Please Enter your UID below:</h2>
+		  <input v-model="download_id" placeholder="eg.123456">
+		  <button v-if="!downloadURL" @click="getDownloadURL">Retrieve File</button>
+		</div>
+		<div v-else>
+		  <h2>Here is the link to your file</h2>
+		  <a :href="downloadURL"  target="_blank">{{ download_key }}</a>
+		</div>
+	  </div>
+    </div>
+
+    <script>
+      const MAX_FILE_SIZE = 1024*1024*1024
+
+      /* ENTER YOUR ENDPOINT HERE */
+
+      const API_ENDPOINT = '' // e.g. https://ab1234ab123.execute-api.us-east-1.amazonaws.com/uploads
+	  const DOWNLOAD_ENDPOINT = API_ENDPOINT + '/download'
+	  const UPLOAD_ENDPOINT = API_ENDPOINT + '/upload'
+
+
+      new Vue({
+        el: "#app",
+        data: {
+		  upload_b: true,
+		  download_b: false,
+		  u_d_boolean:false,
+          file: '',
+		  file_name: '',
+		  file_type: '',
+          uploadURL: '',
+		  downloadURL: '',
+		  upload_id: '',
+		  download_id: '',
+		  download_key: '',
+        },
+        methods: {
+          onFileChange (e) {
+            let files = e.target.files || e.dataTransfer.files
+            if (!files.length) return
+            this.reconfirm(files[0])
+          },
+
+		  toggleUploadDownload: function (e) {
+            console.log('Upload clicked')
+            this.upload_b= !this.upload_b
+			this.download_b= !this.download_b
+          },
+
+		  reconfirm (file) {
+			let reader = new FileReader()
+            reader.onload = (e) => {
+
+			  console.log(e.target.result)
+              if (e.target.result.length > MAX_FILE_SIZE) {
+                return alert('File is loo large.')
+              }
+              this.file = e.target.result
+            }
+            reader.readAsDataURL(file)
+			console.log(file.name)
+			this.file_name=file.name
+			this.file_type=file.type
+		  },
+
+          removeFile: function (e) {
+            console.log('Remove clicked')
+            this.file = ''
+          },
+
+          uploadFile: async function (e) {
+            console.log('Upload clicked')
+            // Get the presigned URL
+			let file_name = this.file_name
+            const response = await axios({
+              method: 'GET',
+              url: UPLOAD_ENDPOINT,
+			  params:{
+				fileName: file_name,
+				contentType:this.file_type,
+			  },
+            })
+			this.upload_id = response.ID
+            console.log('Response: ', response)
+            console.log('Uploading: ', this.image)
+            let binary = atob(this.file.split(',')[1])
+            let array = []
+            for (var i = 0; i < binary.length; i++) {
+              array.push(binary.charCodeAt(i))
+            }
+            let blobData = new Blob([new Uint8Array(array)], {type: response.contentType})
+            console.log('Uploading to: ', response.uploadURL)
+            const result = await fetch(response.uploadURL, {
+              method: 'PUT',
+              body: blobData,
+            })
+            console.log('Result: ', result)
+            // Final URL for the user doesn't need the query string params
+            this.uploadURL = response.uploadURL.split('?')[0]
+          },
+
+		  getDownloadURL:async function (e) {
+		    console.log("Attempting to Retrieve File")
+			const response = await axios({
+              method: 'GET',
+              url: DOWNLOAD_ENDPOINT,
+			  params:{
+				ID: this.download_id,
+			  },
+            })
+
+			if (response.object_key === -1){
+				return alert("Invalid UID")
+			}
+			else{
+				console.log(response)
+				this.downloadURL = response.downloadURL
+				this.download_key = response.object_key
+
+				console.log(this.downloadURL)
+			}
+		  }
+		}
+      })
+    </script>
+    <style type="text/css">
+      body {
+        background: #20262E;
+        padding: 20px;
+        font-family: sans-serif;
+      }
+      #app {
+        background: #fff;
+        border-radius: 4px;
+        padding: 20px;
+        transition: all 0.2s;
+        text-align: center;
+      }
+      #logo {
+        width: 100px;
+      }
+      h2 {
+        font-weight: bold;
+        margin-bottom: 15px;
+      }
+      h1, h2 {
+        font-weight: normal;
+        margin-bottom: 15px;
+      }
+      a {
+        color: #42b983;
+      }
+      img {
+        width: 30%;
+        margin: auto;
+        display: block;
+        margin-bottom: 10px;
+      }
+
+
+
+	.toggle-container {
+	  position: relative;
+	  display: inline-block;
+	  width: 140px;
+	  height: 40px;
+	  pointer-events: none;
+	  user-select: none;
+	}
+
+	.toggle-container input {
+	  opacity: 0;
+	  width: 100%;
+	  height: 100%;
+	  pointer-events: all;
+	}
+
+	.slider {
+	  position: absolute;
+	  cursor: pointer;
+	  top: 0;
+	  left: 0;
+	  right: 0;
+	  bottom: 0;
+	  background-color: #24c404;
+	  transition: 0.4s;
+	  pointer-events: none;
+	}
+
+	.slider::before {
+	  position: absolute;
+	  content: "";
+	  height: 24px;
+	  width: 24px;
+	  left: 8px;
+	  bottom: 8px;
+	  background-color: #fff;
+	  transition: 0.2s;
+	  pointer-events: none;
+	}
+	.slider::after {
+	  position: absolute;
+	  content: "Upload";
+	  height: 24px;
+	  width: 24px;
+	  right: 42px;
+	  bottom: 6px;
+	  transition: 0.2s;
+	  color: #fff;
+	  pointer-events: none;
+	}
+
+	input:checked + .slider {
+	  background-color: #2196f3;
+	}
+
+	input:checked + .slider:before {
+	  transform: translateX(98px);
+	}
+
+	input:checked + .slider:after {
+	  content: "Download";
+	  left: 8px;
+	}
+
+	.slider.round {
+	  border-radius: 34px;
+	}
+
+	.slider.round:before {
+	  border-radius: 50%;
+	}
+
+    </style>
+  </body>
+</html>
